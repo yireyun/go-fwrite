@@ -1,5 +1,5 @@
-// esFile_test
-package esLogger
+// esFileWrite_test.go
+package fwrite
 
 import (
 	"bytes"
