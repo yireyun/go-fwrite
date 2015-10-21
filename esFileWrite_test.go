@@ -1,4 +1,3 @@
-// esFileWrite_test.go
 package fwrite
 
 import (

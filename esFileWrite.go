@@ -14,7 +14,6 @@
 //
 // fork from github.com\astaxie\beego\logs
 
-// esFileWrite.go
 package fwrite
 
 import (
