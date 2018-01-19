@@ -19,7 +19,6 @@ package fwrite
 import (
 	"bytes"
 	"fmt"
-	"github.com/yireyun/go-flock"
 	"io"
 	"math"
 	"os"
@@ -28,6 +27,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/yireyun/go-flock"
 )
 
 const (
@@ -302,10 +303,10 @@ func (c *FileConfig) GetFileName() (fileName string, err error) {
 				newName, e := c.getFileRename(fileName, info.ModTime())
 				if e == nil {
 					if e = os.Rename(fileName, newName); e != nil {
-						fmt.Printf("\t%s rename error: %v", e)
+						fmt.Printf("\t[%s] rename [%s] error: %v\n", fileName, e)
 					}
 				} else {
-					fmt.Printf("\t%s rename '%s' error:%v\n", c.Name, fileName, e)
+					fmt.Printf("\t[%s] get rename [%s] error: %v\n", c.Name, fileName, e)
 				}
 			}
 		}
