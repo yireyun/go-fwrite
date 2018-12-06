@@ -710,6 +710,9 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 				next = file.ToDay
 			}
 		}
+		if next == 0 {
+			next = max
+		}
 		return
 	}
 
@@ -724,6 +727,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	if keepDays < MaxKeepDays {
 		keepDays = MaxKeepDays
 	}
+
+	//计算保留最后keepDays个文件
 	var keepTime int64 = yesterday
 	for i := 0; i < keepDays && keepTime > 0; i++ {
 		keepTime = maxModfy(keepTime)
