@@ -632,7 +632,7 @@ func zipFile(fileName string) error {
 		return err
 	}
 	_, err = io.Copy(writer, srcfd)
-	if err != nil {
+	if err == nil {
 		zipErr := zipWrite.Close()
 		srcfd.Close()
 		zipFd.Close()
