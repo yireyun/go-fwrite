@@ -710,9 +710,6 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 				next = file.ToDay
 			}
 		}
-		if next == 0 {
-			next = max
-		}
 		return
 	}
 
