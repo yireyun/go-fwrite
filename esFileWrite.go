@@ -17,6 +17,7 @@
 package fwrite
 
 import (
+	"archive/zip"
 	"bytes"
 	"fmt"
 	"io"
@@ -55,8 +56,9 @@ type FileWriter interface {
 //互斥写文件
 type MutexWrite struct {
 	sync.Mutex
-	out   *os.File      //当前输出文件
-	flock flock.Flocker //当前输出文件文件锁
+	zipFile bool
+	out     *os.File      //当前输出文件
+	flock   flock.Flocker //当前输出文件文件锁
 }
 
 //以WriteOnly和Append打开文件，不存在则创建
@@ -117,6 +119,8 @@ func (mw *MutexWrite) SetFd(fileSync, fileLock, rename bool,
 			err = os.Rename(mw.out.Name(), fileRename)
 			if err != nil {
 				return
+			} else if mw.zipFile {
+				go zipFile(fileRename)
 			}
 		}
 
@@ -174,6 +178,7 @@ type FileConfig struct {
 	// Rotate at size
 	Rotate             bool  //是否自动分割
 	Dayend             bool  //文件日终
+	ZipFile            bool  //压缩文件
 	RotateRename       bool  //分割时是否重命名
 	RotateRenameSuffix bool  //分割时是否只对后缀重命名
 	MaxLines           int64 //最大行数,最小为1行
@@ -259,7 +264,8 @@ func (c *FileConfig) getFileRename(fileName string, modifyTime time.Time) (
 		fileRename = fmt.Sprintf("%s.%s.%03d%s", fileName,
 			modifyTime.Format("2006-01-02"), num, c.RenameSuffix)
 		_, fileNameErr := os.Lstat(fileRename)
-		if fileNameErr != nil {
+		_, fileZipNameErr := os.Lstat(fileRename + ".zip")
+		if fileNameErr != nil && fileZipNameErr != nil {
 			//文件不存在则返回
 			return fileRename, nil
 		}
@@ -303,10 +309,14 @@ func (c *FileConfig) GetFileName() (fileName string, err error) {
 				newName, e := c.getFileRename(fileName, info.ModTime())
 				if e == nil {
 					if e = os.Rename(fileName, newName); e != nil {
-						fmt.Printf("\t[%s] rename [%s] error: %v\n", fileName, e)
+						fmt.Printf("\t[%s] rename [%s] error: %v\n",
+							fileName, newName, e)
+					} else {
+						go zipFile(newName)
 					}
 				} else {
-					fmt.Printf("\t[%s] get rename [%s] error: %v\n", c.Name, fileName, e)
+					fmt.Printf("\t[%s] get rename [%s] error: %v\n",
+						c.Name, fileName, e)
 				}
 			}
 		}
@@ -393,12 +403,13 @@ func (w *FileWrite) InitFileWriter(name string, cfger Configer) {
 //cleanSuffix	是输入清理文件名后缀
 //rotate    	是输入是否自动分割
 //dayend     	是输入是否文件日终
+//zipFile   	是输入是否压缩文件
 //maxLines   	是输入最大行数,最小为1行
 //maxSize   	是输入最大尺寸,最小为1M
 //cleaning     	是输入是否清理历史
 //maxDays		是输入最大天数,最小为3天
 func (w *FileWrite) Init(fileSync bool, filePrefix string,
-	writeSuffix, renameSuffix, cleanSuffix string, rotate, dayend bool,
+	writeSuffix, renameSuffix, cleanSuffix string, rotate, dayend, zipFile bool,
 	maxLines, maxSize int64, cleaning bool, maxDays int) (string, error) {
 	prefix := func(s string) string {
 		s = strings.TrimSpace(s)
@@ -461,11 +472,17 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	}
 
 	if w.cfg.FileSync == fileSync &&
-		w.cfg.FilePrefix == filePrefix && w.cfg.WriteSuffix == writeSuffix &&
-		w.cfg.RenameSuffix == renameSuffix && w.cfg.CleanSuffix == cleanSuffix &&
-		w.cfg.Rotate == rotate && w.cfg.Dayend == dayend &&
-		w.cfg.MaxLines == maxLines && w.cfg.MaxSize == maxSize &&
-		w.cfg.Cleaning == cleaning && w.cfg.MaxDays == maxDays {
+		w.cfg.FilePrefix == filePrefix &&
+		w.cfg.WriteSuffix == writeSuffix &&
+		w.cfg.RenameSuffix == renameSuffix &&
+		w.cfg.CleanSuffix == cleanSuffix &&
+		w.cfg.Rotate == rotate &&
+		w.cfg.Dayend == dayend &&
+		w.cfg.ZipFile == zipFile &&
+		w.cfg.MaxLines == maxLines &&
+		w.cfg.MaxSize == maxSize &&
+		w.cfg.Cleaning == cleaning &&
+		w.cfg.MaxDays == maxDays {
 		return w.cfg.FileName, nil
 	}
 
@@ -479,6 +496,8 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	w.cfg.CleanSuffix = cleanSuffix
 	w.cfg.Rotate = rotate
 	w.cfg.Dayend = dayend
+	w.cfg.ZipFile = zipFile
+	w.mw.zipFile = zipFile
 	if w.cfg.RotateRenameSuffix {
 		w.cfg.RotateRename = writeSuffix != renameSuffix
 	} else {
@@ -583,6 +602,51 @@ func (w *FileWrite) rotateInit() error {
 		w.cfg.CurLines = count
 	}
 	return nil
+}
+
+func zipFile(fileName string) error {
+	srcfd, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+
+	fileNameZip := fileName + ".zip"
+	flag := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
+	zipFd, err := os.OpenFile(fileNameZip, flag, 0660)
+	if err != nil {
+		return err
+	}
+
+	info, err := srcfd.Stat()
+	if err != nil {
+		return err
+	}
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+	header.Method = zip.Deflate
+	zipWrite := zip.NewWriter(zipFd)
+	writer, err := zipWrite.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, srcfd)
+	if err != nil {
+		zipErr := zipWrite.Close()
+		srcfd.Close()
+		zipFd.Close()
+		if zipErr == nil {
+			return os.Remove(fileName)
+		} else {
+			return zipErr
+		}
+	} else {
+		srcfd.Close()
+		zipFd.Close()
+		zipWrite.Close()
+		return err
+	}
 }
 
 //写入数据
@@ -758,6 +822,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 				err = os.Rename(file.Path, newName)
 				if err != nil {
 					fmt.Printf("\t%s %v\n", w.Name, file.Path)
+				} else {
+					go zipFile(newName)
 				}
 			} else {
 				fmt.Printf("\t%s %v\n", w.Name, err)
