@@ -21,9 +21,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -304,7 +306,7 @@ func (c *FileConfig) GetFileName() (fileName string, err error) {
 
 	if c.RotateRename {
 		if info, e := os.Lstat(fileName); e == nil { //文件存在
-			//尺寸大于0，并且人日期不等于当前，进行文件切换
+			//尺寸大于0，并且日期不等于当前，进行文件切换
 			if info.Size() > 0 && info.ModTime().Day() != time.Now().Day() {
 				newName, e := c.getFileRename(fileName, info.ModTime())
 				if e == nil {
@@ -605,6 +607,12 @@ func (w *FileWrite) rotateInit() error {
 }
 
 func zipFile(fileName string) error {
+	defer func() {
+		if x := recover(); x != nil {
+			log.Printf("zipFile [%v] Error: %v\n", fileName, x)
+			log.Printf("zipFile Stack => %s\n", debug.Stack())
+		}
+	}()
 	srcfd, err := os.Open(fileName)
 	if err != nil {
 		return err
