@@ -1,4 +1,4 @@
-package fwrite
+package fwSuper
 
 import (
 	"bytes"
