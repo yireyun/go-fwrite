@@ -12,12 +12,12 @@ var (
 )
 
 type logger struct {
-	io.Writer
+	o io.Writer
 }
 
 func (w logger) Write(p []byte) (n int, err error) {
 	if len(p) > 0 {
-		return w.Write(p)
+		return w.o.Write(p)
 	}
 	return 0, nil
 }
@@ -41,5 +41,4 @@ func output() io.Writer {
 	} else {
 		return os.Stdout
 	}
-
 }
