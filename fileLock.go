@@ -4,6 +4,11 @@ package fwrite
 import (
 	"os"
 	"sync"
+	"time"
+)
+
+const (
+	traceLock = true
 )
 
 type fileLock struct {
@@ -17,32 +22,16 @@ func (f *fileLock) DoLock(file *os.File) bool {
 
 	if _, ok := f.files[file.Name()]; !ok {
 		f.files[file.Name()] = file
-		printf(" <Trace> fileLock.DoLock \"%s\" Success.", file.Name())
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.DoLock \"%s\" Success.\n\n",
+				time.Now().Format(logFormat), file.Name())
+		}
 		return true
 	} else {
-		printf(" <Trace> fileLock.DoLock \"%s\" Exist.", file.Name())
-		return false
-	}
-}
-
-func (f *fileLock) Switch(oldFile, newFile *os.File) bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if _, ok := f.files[oldFile.Name()]; ok {
-		delete(f.files, oldFile.Name())
-		printf(" <Trace> fileLock.Switch Old \"%s\" Success.", oldFile)
-	} else {
-		printf(" <Trace> fileLock.Switch Old \"%s\" Not Exist.", oldFile)
-		return false
-	}
-
-	if _, ok := f.files[newFile.Name()]; !ok {
-		f.files[newFile.Name()] = newFile
-		printf(" <Trace> fileLock.Switch New \"%s\" Success.", newFile)
-		return true
-	} else {
-		printf(" <Trace> fileLock.Switch New \"%s\" Is Exist.", newFile)
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.DoLock \"%s\" IsExist.\n\n",
+				time.Now().Format(logFormat), file.Name())
+		}
 		return false
 	}
 }
@@ -53,10 +42,16 @@ func (f *fileLock) Unlock(file *os.File) bool {
 
 	if _, ok := f.files[file.Name()]; ok {
 		delete(f.files, file.Name())
-		printf(" <Trace> fileLock.Unlock \"%s\" Success.", file.Name())
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.Unlock \"%s\" Success.\n\n",
+				time.Now().Format(logFormat), file.Name())
+		}
 		return ok
 	} else {
-		printf(" <Trace> fileLock.Unlock \"%s\" Not Exist.", file.Name())
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.Unlock \"%s\" Not Exist.\n\n",
+				time.Now().Format(logFormat), file.Name())
+		}
 		return ok
 	}
 }
@@ -66,9 +61,15 @@ func (f *fileLock) Exists(name string) bool {
 	_, ok := f.files[name]
 	f.mu.Unlock()
 	if ok {
-		printf(" <Trace> fileLock.Exists \"%s\" Is Exist.", name)
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.Exists \"%s\" Is Locked.\n\n",
+				time.Now().Format(logFormat), name)
+		}
 	} else {
-		printf(" <Trace> fileLock.Exists \"%s\" Not Exist.", name)
+		if traceLock {
+			printf(" <TRACE>[%s] fileLock.Exists \"%s\" Not Exist.\n\n",
+				time.Now().Format(logFormat), name)
+		}
 	}
 
 	return ok
