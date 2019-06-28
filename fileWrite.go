@@ -34,7 +34,7 @@ type FileWriter interface {
 //只写文件记录器
 type FileWrite struct {
 	//对象名称
-	Name string
+	_Name_ string
 
 	//互斥写文件
 	muwt *MutexWrite
@@ -60,10 +60,11 @@ func NewFileWrite(name string) *FileWrite {
 	cfg := new(FileConfig)
 	cfg.InitAsDefault(name)
 	w := &FileWrite{
-		Name:  name,
-		cfg:   cfg, //设置配置信息
-		cfger: cfg, //信息接口
+		_Name_: name,
+		cfg:    cfg, //设置配置信息
+		cfger:  cfg, //信息接口
 		muwt: &MutexWrite{
+			_Name_: name + ".MWrite",
 			stdout: true,      //输出到Stdout
 			file:   os.Stdout, //输出到Stdout
 			cfger:  cfg,       //信息接口
@@ -80,10 +81,11 @@ func NewFileWriterConfig(name string, cfger Configer) *FileWrite {
 		panic("Configer Is't Nil")
 	}
 	w := &FileWrite{
-		Name:  name,
-		cfger: cfger,
-		cfg:   cfger.Config(), //设置配置信息
+		_Name_: name,
+		cfger:  cfger,
+		cfg:    cfger.Config(), //设置配置信息
 		muwt: &MutexWrite{
+			_Name_: name + ".MWrite",
 			stdout: true,      //输出到Stdout
 			file:   os.Stdout, //输出到Stdout
 			cfger:  cfger,     //输入配置
@@ -99,10 +101,11 @@ func (w *FileWrite) InitFileWriter(name string, cfger Configer) {
 	if cfger == nil {
 		panic("Configer Is't Nil")
 	}
-	w.Name = name
+	w._Name_ = name
 	w.cfger = cfger
 	w.cfg = cfger.Config() //设置配置信息
 	w.muwt = &MutexWrite{
+		_Name_: name + ".mw",
 		stdout: true,      //输出到Stdout
 		file:   os.Stdout, //输出到Stdout
 		cfger:  cfger,     //输入配置
@@ -256,7 +259,8 @@ func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 			(w.cfg.Dayend && now.Day() != w.cfg.CurDay)) { //日期变化触发切文件
 		defer w.mu.Unlock()
 		if err := w.Rotate(); err != nil {
-			printf(" <ERROR> %s file rotate error：%v\n", w.Name, err)
+			printf(" <ERROR>[%s] %s rotate error：%v\n",
+				logTime(), w._Name_, err)
 			return
 		}
 		w.cfg.CurLines++
@@ -339,13 +343,13 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	dir := filepath.Dir(fileName)
 	absPath, err := filepath.Abs(dir)
 	if err != nil {
-		return errorf(" <ERROR> %s abs path error：%v\n", w.Name, err), nil
+		return errorf(" <ERROR> %s abs path error：%v\n", w._Name_, err), nil
 	}
 
 	if atomic.CompareAndSwapInt32(&w.fileCleaning, 0, 1) {
 		defer atomic.StoreInt32(&w.fileCleaning, 0)
 	} else {
-		return errorf(" <ERROR> %s is fileCleaning \"%s\"\n", w.Name, absPath), nil
+		return errorf(" <ERROR> %s is fileCleaning \"%s\"\n", w._Name_, absPath), nil
 	}
 
 	now := time.Now()
@@ -373,7 +377,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				printf(" <ERROR> %s clean \"%s\" error:%v\n", w.Name, path, r)
+				printf(" <ERROR>[%s] %s clean \"%s\" panic:%v\n",
+					logTime(), w._Name_, path, r)
 			}
 		}()
 
@@ -416,7 +421,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	//遍类目录线的所有文件
 	err = filepath.Walk(dir, cleanFunc)
 	if err != nil {
-		printf(" <ERROR> %s over walk error:%v\n", w.Name, err)
+		printf(" <ERROR>[%v] %s over walk error: %v\n",
+			logTime(), w._Name_, err)
 	}
 
 	//结算Keep保持时间
@@ -440,7 +446,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			strings.HasSuffix(file.Path, w.cfg.CleanSuffix) {
 			err := os.Remove(file.Path)
 			if err != nil {
-				printf(" <ERROR> %s %v\n", w.Name, file.Path)
+				printf(" <ERROR>[%s] %s os.remove %v, err : %v\n",
+					logTime(), w._Name_, file.Path, err)
 			} else {
 				cleanFile = append(cleanFile, file.Path)
 			}
@@ -454,12 +461,14 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			!FileLocked(file.Base) {
 			newName, err := w.cfger.GetFileRename(file.Base)
 			if err == nil {
-				err = os.Rename(file.Path, newName)
+				err = os.Rename(file.Base, newName)
 				if err != nil {
-					printf(" <ERROR> %s %v\n", w.Name, file.Path)
+					printf(" <ERROR>[%s] %s os.rename %v -> %v , err : %v \n",
+						logTime(), w._Name_, file.Base, newName, err)
 				}
 			} else {
-				printf(" <ERROR> %s %v\n", w.Name, err)
+				printf(" <ERROR>[%s] %s get rename %v -> %v , err : %v \n",
+					logTime(), w._Name_, file.Base, newName, err)
 			}
 		}
 	}
@@ -470,20 +479,21 @@ func (w *FileWrite) lockClean(fileName string) error {
 	dir := filepath.Dir(fileName)
 	absPath, err := filepath.Abs(dir)
 	if err != nil {
-		return errorf("\t%s abs path error：%v\n", w.Name, err)
+		return errorf("\t%s abs path error：%v\n", w._Name_, err)
 	}
 
 	if atomic.CompareAndSwapInt32(&w.lockCleaning, 0, 1) {
 		defer atomic.StoreInt32(&w.lockCleaning, 0)
 	} else {
-		return errorf(" <ERROR> %s is lockCleaning \"%s\"\n", w.Name, absPath)
+		return errorf("%s is cleaning \"%s\"\n", w._Name_, absPath)
 	}
 
 	//遍历目录函数函数
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
 			if x := recover(); x != nil {
-				printf(" <ERROR> %s clean \"%s\" error:%v\n", w.Name, path, x)
+				printf(" <ERROR>[%s] %s clean \"%s\" panic :%v\n",
+					logTime(), w._Name_, path, x)
 			}
 		}()
 
@@ -507,7 +517,8 @@ func (w *FileWrite) lockClean(fileName string) error {
 	//遍类目录线的所有文件
 	err = filepath.Walk(dir, cleanFunc)
 	if err != nil {
-		printf(" <ERROR> %s over walk error:%v\n", w.Name, err)
+		printf(" <ERROR>[%s] %s over walk error:%v\n",
+			logTime(), w._Name_, err)
 	}
 	return nil
 }

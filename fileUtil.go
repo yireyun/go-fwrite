@@ -4,6 +4,7 @@ package fwrite
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 var (
@@ -16,12 +17,17 @@ var (
 )
 
 const (
-	FileEof = "EOF"
+	logFormat = "2006-01-02T15:04:05.000000000Z07:00"
+	FileEof   = "EOF"
 )
 
 var (
 	fLocks = &fileLock{files: make(map[string]*os.File)}
 )
+
+func logTime() string {
+	return time.Now().Format(logFormat)
+}
 
 //判斷文件是否存在
 //	Lstat写法存读不到信息的BUG, 使用OpenFile来判断
@@ -82,7 +88,8 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		if stat != nil {
 			return stat, true, fLocks.Exists(stat.Name()), err
 		} else {
-			printf(" <ERROR> Get File \"%v\" Stat By os.OpenFile() Error: %v \n", fileName, err)
+			printf(" <ERROR>[%s] FileInfo \"%v\" By os.OpenFile() Error: %v \n",
+				logTime(), fileName, err)
 		}
 	}
 
@@ -96,7 +103,8 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		if stat != nil {
 			return stat, true, fLocks.Exists(stat.Name()), err
 		} else {
-			printf(" <ERROR> Get File \"%v\" Stat By os.IsExist() Error: %v \n", fileName, err)
+			printf(" <ERROR>[%s] %s FileInfo \"%v\" By os.IsExist() Error: %v \n",
+				logTime(), fileName, err)
 		}
 	}
 	return nil, false, fLocks.Exists(fileName), ErrFileMiss
