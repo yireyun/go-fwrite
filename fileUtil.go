@@ -53,13 +53,13 @@ func FileLocked(fileName string) bool {
 	//本写法不能准确判断文件是否存在
 	stat, err := os.Lstat(fileName)
 	if stat != nil && err == nil {
-		return fLocks.Exists(stat.Name())
+		return fLocks.Exists(fileName)
 	}
 
 	//补救措施: 采用打开文件方式判断
 	if file, e := os.OpenFile(fileName, os.O_RDONLY, 0666); e == nil {
 		file.Close()
-		return fLocks.Exists(file.Name())
+		return fLocks.Exists(fileName)
 	} else if os.IsExist(e) {
 		return fLocks.Exists(fileName)
 	} else {
@@ -72,7 +72,7 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 	//本写法不能准确判断文件是否存在
 	stat, err = os.Lstat(fileName)
 	if stat != nil && err == nil {
-		return stat, true, fLocks.Exists(stat.Name()), err
+		return stat, true, fLocks.Exists(fileName), err
 	}
 
 	//补救措施: 采用打开文件方式判断
@@ -86,9 +86,9 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		}
 		file.Close()
 		if stat != nil {
-			return stat, true, fLocks.Exists(stat.Name()), err
+			return stat, true, fLocks.Exists(fileName), err
 		} else {
-			printf(" <ERROR>[%s] FileInfo \"%v\" By os.OpenFile() Error: %v \n",
+			printf(" <ERROR>[%s] FileInfo \"%v\" By os.OpenFile() Error: %v\n\n",
 				logTime(), fileName, err)
 		}
 	}
@@ -101,9 +101,9 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 			tryTimes++
 		}
 		if stat != nil {
-			return stat, true, fLocks.Exists(stat.Name()), err
+			return stat, true, fLocks.Exists(fileName), err
 		} else {
-			printf(" <ERROR>[%s] %s FileInfo \"%v\" By os.IsExist() Error: %v \n",
+			printf(" <ERROR>[%s] %s FileInfo \"%v\" By os.IsExist() Error: %v\n\n",
 				logTime(), fileName, err)
 		}
 	}
