@@ -23,16 +23,15 @@ func (w logger) Write(p []byte) (n int, err error) {
 }
 
 func init() {
-	SetOutput(os.Stdout)
+	setOutput(os.Stdout)
 }
 
-func SetOutput(output io.Writer) {
+func setOutput(output io.Writer) {
 	if out, ok := output.(*logger); ok {
 		outVal.Store(out)
 	} else {
 		outVal.Store(&logger{output})
 	}
-
 }
 
 func output() io.Writer {
@@ -41,4 +40,8 @@ func output() io.Writer {
 	} else {
 		return os.Stdout
 	}
+}
+
+func SetOutput(output io.Writer) {
+	setOutput(output)
 }

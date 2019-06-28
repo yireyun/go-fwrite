@@ -42,7 +42,7 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 			fLocks.Unlock(mw.file)
 			mw.closed = true
 			if err != nil {
-				printf(" <ERROR>[%s] %s close \"%s\" error:%v\n",
+				printf(" <ERROR>[%s] %s close \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, err)
 			}
 		}
@@ -52,7 +52,7 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 			err = mw.flock.Unlock()
 			mw.flock = nil
 			if err != nil {
-				printf(" <ERROR>[%s] %s unlock \"%s\" error:%v\n",
+				printf(" <ERROR>[%s] %s unlock \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, err)
 			}
 		}
@@ -61,12 +61,12 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 		if rename && !mw.renamed {
 
 			if curName == "" {
-				printf(" <ERROR>[%s] %s rename old file error:%v\n",
+				printf(" <ERROR>[%s] %s rename old file error:%v\n\n",
 					logTime(), mw._Name_, ErrNameEmpty)
 				goto NEWFILE
 			}
 			if e := os.Rename(curName, fileRename); e != nil {
-				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error:%v\n",
+				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, fileRename, e)
 				goto NEWFILE
 			}
@@ -99,7 +99,7 @@ NEWFILE:
 			mw.flock = flock.NewFlock(fileName + LockSuffix)
 			err = mw.flock.NBLock()
 			if err != nil {
-				printf(" <ERROR>[%s] %s lock \"%s\" error:%v\n",
+				printf(" <ERROR>[%s] %s lock \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, fileName, err)
 			}
 		}

@@ -197,11 +197,11 @@ func (c *FileConfig) GetNewFileName() (fileName string, err error) {
 				newName, e := c.getFileRename(fileName, info.ModTime())
 				if e == nil {
 					if e = os.Rename(fileName, newName); e != nil {
-						printf(" <ERROR>[%s] %s rename [%s] error: %v\n",
+						printf(" <ERROR>[%s] %s rename [%s] error: %v\n\n",
 							logTime(), c.Name, fileName, e)
 					}
 				} else {
-					printf(" <ERROR>[%s] %s get rename [%s] error: %v\n",
+					printf(" <ERROR>[%s] %s get rename [%s] error: %v\n\n",
 						logTime(), c.Name, fileName, e)
 				}
 			}
