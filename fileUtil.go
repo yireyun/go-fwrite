@@ -103,7 +103,7 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		if stat != nil {
 			return stat, true, fLocks.Exists(fileName), err
 		} else {
-			printf(" <ERROR>[%s] %s FileInfo \"%v\" By os.IsExist() Error: %v\n\n",
+			printf(" <ERROR>[%s] FileInfo \"%v\" By os.IsExist() Error: %v\n\n",
 				logTime(), fileName, err)
 		}
 	}
