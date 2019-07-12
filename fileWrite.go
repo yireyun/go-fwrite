@@ -444,7 +444,8 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	for _, file := range files {
 		//删除过期的数据，至少保持最近3天的数据文件，增加结对时间判断防止误删除
 		if file.Modfy.Unix() < abcTime && file.Modfy.Unix() < keepTime &&
-			strings.HasSuffix(file.Path, w.cfg.CleanSuffix) {
+			strings.HasSuffix(file.Path, w.cfg.CleanSuffix) &&
+			!FileLocked(file.Base) {
 			err := os.Remove(file.Path)
 			if err != nil {
 				printf(" <ERROR>[%s] %s os.remove %v, err : %v\n\n",

@@ -3,6 +3,7 @@ package fwrite
 
 import (
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -57,6 +58,9 @@ func (f *fileLock) Unlock(file *os.File) bool {
 }
 
 func (f *fileLock) Exists(name string) bool {
+
+	name = strings.Replace(name, `\`, `/`, -1)
+
 	f.mu.Lock()
 	_, ok := f.files[name]
 	f.mu.Unlock()

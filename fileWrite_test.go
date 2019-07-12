@@ -89,6 +89,6 @@ func TestBenchmarkWrite(t *testing.T) {
 
 func BenchmarkWrite(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		write.WriteString("debug")
+		write.WriteString("")
 	}
 }

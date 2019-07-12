@@ -29,6 +29,8 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 	mw.mutex.Lock()
 	defer mw.mutex.Unlock()
 
+	isLocked := false
+
 	if mw.file != nil && mw.file != os.Stdout {
 
 		curName := mw.file.Name()
@@ -39,7 +41,15 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 		//关闭文件
 		if !mw.closed {
 			err = mw.file.Close()
-			fLocks.Unlock(mw.file)
+			if !rename {
+				//如果不修改名文件名, 则不解出锁定
+				fLocks.Unlock(mw.file)
+				isLocked = false
+			} else {
+				//检查锁是否存在,不存在则 NEWFILE 时需要枷锁
+				isLocked = fLocks.Exists(curName)
+			}
+
 			mw.closed = true
 			if err != nil {
 				printf(" <ERROR>[%s] %s close \"%s\" error:%v\n\n",
@@ -58,7 +68,7 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 		}
 
 		//重命名文件
-		if rename && !mw.renamed {
+		if rename {
 
 			if curName == "" {
 				printf(" <ERROR>[%s] %s rename old file error:%v\n\n",
@@ -70,7 +80,6 @@ func (mw *MutexWrite) setFd(fileSync, fileLock, rename bool,
 					logTime(), mw._Name_, curName, fileRename, e)
 				goto NEWFILE
 			}
-			mw.renamed = true
 		}
 	}
 
@@ -90,9 +99,11 @@ NEWFILE:
 		} else {
 			fileSize = fs.Size()
 		}
-		mw.file, mw.closed, mw.renamed, mw.stdout = fd, false, false, false
+		mw.file, mw.closed, mw.stdout = fd, false, false
 		mw.cfger.setCurFileName(fileName, fileSize)
-		fLocks.DoLock(mw.file)
+		if !isLocked {
+			fLocks.DoLock(mw.file)
+		}
 
 		//锁定文件
 		if fileLock {

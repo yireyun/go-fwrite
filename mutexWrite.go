@@ -42,14 +42,13 @@ type MutexConfiger interface {
 
 //互斥写文件
 type MutexWrite struct {
-	_Name_  string
-	mutex   sync.Mutex
-	file    *os.File      //当前输出文件
-	cfger   MutexConfiger //配置信息接口
-	flock   flock.Flocker //当前输出文件文件锁
-	stdout  bool          //当前输出文件是控制台
-	closed  bool          //当前输出文件是否被关闭
-	renamed bool          //当前输出文件是否已重命名
+	_Name_ string
+	mutex  sync.Mutex
+	file   *os.File      //当前输出文件
+	cfger  MutexConfiger //配置信息接口
+	flock  flock.Flocker //当前输出文件文件锁
+	stdout bool          //当前输出文件是控制台
+	closed bool          //当前输出文件是否被关闭
 }
 
 func NewMutexWrite(cfger MutexConfiger) *MutexWrite {
@@ -196,8 +195,12 @@ func (mw *MutexWrite) Close() (err error) {
 			}
 		}
 
+		stat, exist, locked, err := FileInfo(mw.file.Name())
+		if err != nil {
+			return err
+		}
 		//重命名文件
-		if rename && !mw.renamed {
+		if rename && exist && !locked && stat.Size() > 0 {
 
 			if curName == "" {
 				printf(" <ERROR>[%s] %s rename old file error:%v\n\n",
@@ -223,7 +226,6 @@ func (mw *MutexWrite) Close() (err error) {
 					logTime(), mw._Name_, curName, fileRename, e)
 				return e
 			}
-			mw.renamed = true
 		}
 	}
 	return nil
