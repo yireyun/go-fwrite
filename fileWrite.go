@@ -389,18 +389,22 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 		}
 
 		if !info.IsDir() {
-			basePath := filepath.Base(path)
-			basePrefix := filepath.Base(w.cfg.FilePrefix)
+			basePath := filepath.Base(path)               //获取path的最后一个元素名
+			basePrefix := filepath.Base(w.cfg.FilePrefix) //获取FilePrefix的元素名
+			dirPath := filepath.Dir(path)                 //获取path的目录
+			dirPrefix := filepath.Dir(w.cfg.FilePrefix)   //获取FilePrefix的目录
+			toDay := truncToDay(info.ModTime())           //文件时间到凌晨0点时间
 
-			if strings.HasPrefix(basePath, basePrefix) &&
+			if dirPath == dirPrefix && toDay < yesterday &&
+				strings.HasPrefix(basePath, basePrefix) &&
 				!strings.HasSuffix(basePath, fileName+LockSuffix) &&
 				strings.HasSuffix(basePath, w.cfg.WriteSuffix+LockSuffix) {
 				os.Remove(basePath)
 				return
 			}
 
-			toDay := truncToDay(info.ModTime())
-			if strings.HasPrefix(basePath, basePrefix) && toDay < yesterday {
+			if dirPath == dirPrefix && toDay < yesterday &&
+				strings.HasPrefix(basePath, basePrefix) {
 				files = append(files, &file{Path: path, Name: info.Name(),
 					Base: basePath, Size: info.Size(), Mode: info.Mode(),
 					Modfy: info.ModTime(), ToDay: toDay})
@@ -490,6 +494,15 @@ func (w *FileWrite) lockClean(fileName string) error {
 		return errorf("%s is cleaning \"%s\"\n\n", w._Name_, absPath)
 	}
 
+	//计算指定日期凌晨0点时间
+	truncToDay := func(t time.Time) int64 {
+		return t.Unix() - int64(t.Hour())*60*60 -
+			int64(t.Minute())*60 - int64(t.Second())
+	}
+
+	now := time.Now()            //获取当前日期时间
+	yesterday := truncToDay(now) //计算今天凌晨0点时间
+
 	//遍历目录函数函数
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
@@ -506,9 +519,13 @@ func (w *FileWrite) lockClean(fileName string) error {
 		}
 
 		if !info.IsDir() {
-			basePath := filepath.Base(path)
-			basePrefix := filepath.Base(w.cfg.FilePrefix)
-			if strings.HasPrefix(basePath, basePrefix) &&
+			basePath := filepath.Base(path)               //获取path的最后一个元素名
+			basePrefix := filepath.Base(w.cfg.FilePrefix) //获取FilePrefix的元素名
+			dirPath := filepath.Dir(path)                 //获取path的目录
+			dirPrefix := filepath.Dir(w.cfg.FilePrefix)   //获取FilePrefix的目录
+			toDay := truncToDay(info.ModTime())           //文件时间到凌晨0点时间
+			if dirPath == dirPrefix && toDay < yesterday &&
+				strings.HasPrefix(basePath, basePrefix) &&
 				!strings.HasSuffix(basePath, fileName+LockSuffix) &&
 				strings.HasSuffix(basePath, w.cfg.WriteSuffix+LockSuffix) {
 				os.Remove(basePath)
