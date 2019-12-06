@@ -112,7 +112,7 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 
 //以WriteOnly和Append打开文件，不存在则创建
 func openFileWithCreateAppend(fileName string, fielSync bool) (*os.File, error) {
-	flag := os.O_APPEND | os.O_CREATE
+	flag := os.O_APPEND | os.O_CREATE | os.O_RDWR
 	if fielSync {
 		flag |= os.O_SYNC
 	}
