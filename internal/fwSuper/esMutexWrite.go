@@ -18,9 +18,10 @@ package fwSuper
 
 import (
 	"fmt"
-	"github.com/yireyun/go-flock"
 	"os"
 	"sync"
+
+	"github.com/yireyun/go-flock"
 )
 
 //互斥写文件
@@ -85,9 +86,10 @@ func (mw *MutexWrite) SetFd(fileSync, fileLock, rename bool,
 
 		//重命名文件
 		if rename {
-			err = os.Rename(mw.out.Name(), fileRename)
-			if err != nil {
+			if err = os.Rename(mw.out.Name(), fileRename); err != nil {
 				return
+			} else if mw.zipFile {
+				go zipFile(fileRename)
 			}
 		}
 

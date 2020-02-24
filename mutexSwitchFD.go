@@ -85,6 +85,8 @@ func (mw *MutexWrite) SwitchFD() (err error) {
 				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, fileRename, e)
 				goto NEWFILE
+			} else if mw.cfger.IsFileZip() {
+				go zipLogFile(fileRename)
 			}
 		}
 	}
@@ -126,6 +128,8 @@ NEWFILE:
 				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, fileName, fileRename, e)
 				continue
+			} else if mw.cfger.IsFileZip() {
+				go zipLogFile(fileRename)
 			}
 			continue
 		}

@@ -35,6 +35,7 @@ type FileConfig struct {
 	FileEof      []byte //文件结束填充
 	FileSync     bool   //是否同步写文件
 	FileLock     bool   //是否文件锁定
+	FileZip      bool   //是否压缩文件
 
 	// Rotate at size
 	Rotate             bool  //是否自动分割
@@ -108,6 +109,10 @@ func (c *FileConfig) IsRename() bool {
 	return c.RotateRename
 }
 
+func (c *FileConfig) IsFileZip() bool {
+	return c.FileZip
+}
+
 //获取文件结束填充
 func (c *FileConfig) GetFileEof() []byte {
 	return c.FileEof
@@ -155,7 +160,7 @@ func (c *FileConfig) getFileRename(fileName string, modifyTime time.Time) (
 	for num := 1; num <= math.MaxInt16; num++ {
 		fileRename = sprintf("%s.%s.%03d%s", fileName,
 			modifyTime.Format("2006-01-02"), num, c.RenameSuffix)
-		if !FileExist(fileRename) {
+		if !FileExist(fileRename) && !FileExist(fileRename+zipFileSuffix) {
 			//文件不存在则返回
 			return fileRename, nil
 		}
@@ -199,6 +204,8 @@ func (c *FileConfig) GetNewFileName() (fileName string, err error) {
 					if e = os.Rename(fileName, newName); e != nil {
 						printf(" <ERROR>[%s] %s rename [%s] error: %v\n\n",
 							logTime(), c.Name, fileName, e)
+					} else if c.IsFileZip() {
+						go zipLogFile(newName)
 					}
 				} else {
 					printf(" <ERROR>[%s] %s get rename [%s] error: %v\n\n",

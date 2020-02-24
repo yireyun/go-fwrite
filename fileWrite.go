@@ -17,17 +17,17 @@ const (
 type FileWriter interface {
 
 	//写入数据
-	//in    	是输入保存数据
-	//fileName  是输出文件名
-	//lineNo    是输出文件行号
-	//err   	是输出错误信息
+	//in    	输入保存数据
+	//fileName  输出文件名
+	//lineNo    输出文件行号
+	//err   	输出错误信息
 	Write(in []byte) (fileName string, lineNo int64, err error)
 
 	//写入字符串
-	//s    		是输入保存数据
-	//fileName  是输出文件名
-	//lineNo    是输出文件行号
-	//err   	是输出错误信息
+	//s    		输入保存数据
+	//fileName  输出文件名
+	//lineNo    输出文件行号
+	//err   	输出错误信息
 	WriteString(s string) (fileName string, lineNo int64, err error)
 }
 
@@ -113,21 +113,22 @@ func (w *FileWrite) InitFileWriter(name string, cfger Configer) {
 }
 
 //初始化
-//fileSync  	是输入是否同步写文件
-//filePrefix	是输入文件前缀
-//writeSuffix   是输入正在写文件后缀
-//renameSuffix  是输入重命名文件后缀
-//cleanSuffix	是输入清理文件名后缀
-//rotate    	是输入是否自动分割
-//dayend     	是输入是否文件日终
-//zeroSize  	是输入是否新文件零尺寸
-//maxLines   	是输入最大行数,最小为1行
-//maxSize   	是输入最大尺寸,最小为1M
-//cleaning     	是输入是否清理历史
-//maxDays		是输入最大天数,最小为3天
+//fileSync  	输入是否同步写文件
+//filePrefix	输入文件前缀
+//writeSuffix   输入正在写文件后缀
+//renameSuffix  输入重命名文件后缀
+//cleanSuffix	输入清理文件名后缀
+//rotate    	输入是否自动分割
+//dayend     	输入是否文件日终
+//fileZip       输入是否文件压缩
+//zeroSize  	输入是否新文件零尺寸
+//maxLines   	输入最大行数,最小为1行
+//maxSize   	输入最大尺寸,最小为1M
+//cleaning     	输入是否清理历史
+//maxDays		输入最大天数,最小为3天
 func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	writeSuffix, renameSuffix, cleanSuffix string,
-	rotate, dayend, zeroSize bool, maxLines, maxSize int64,
+	rotate, dayend, fileZip, zeroSize bool, maxLines, maxSize int64,
 	cleaning bool, maxDays int) (string, error) {
 
 	prefix := func(s string) string {
@@ -193,7 +194,8 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	if w.cfg.FileSync == fileSync && w.cfg.FilePrefix == filePrefix &&
 		w.cfg.WriteSuffix == writeSuffix && w.cfg.RenameSuffix == renameSuffix &&
 		w.cfg.CleanSuffix == cleanSuffix && w.cfg.Rotate == rotate &&
-		w.cfg.Dayend == dayend && w.cfg.ZeroSize == zeroSize &&
+		w.cfg.Dayend == dayend && w.cfg.FileZip == fileZip &&
+		w.cfg.ZeroSize == zeroSize &&
 		w.cfg.MaxLines == maxLines && w.cfg.MaxSize == maxSize &&
 		w.cfg.Cleaning == cleaning && w.cfg.MaxDays == maxDays {
 		return w.cfg.FileName, nil
@@ -209,6 +211,7 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	w.cfg.CleanSuffix = cleanSuffix
 	w.cfg.Rotate = rotate
 	w.cfg.Dayend = dayend
+	w.cfg.FileZip = fileZip
 	w.cfg.ZeroSize = zeroSize
 	if w.cfg.RotateRenameSuffix {
 		w.cfg.RotateRename = writeSuffix != renameSuffix
@@ -236,6 +239,13 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	return w.cfg.FileName, nil
 }
 
+//是否压缩日志文件
+func (w *FileWrite) SetFileZip(fileZip bool) {
+	w.mu.Lock()
+	w.cfg.FileZip = fileZip
+	w.mu.Unlock()
+}
+
 //文件旋转
 func (w *FileWrite) fileRotate(fileEof []byte) (err error) {
 
@@ -247,9 +257,9 @@ func (w *FileWrite) fileRotate(fileEof []byte) (err error) {
 }
 
 //文件旋转检查
-//size     	是输入写内容尺寸
-//fileName  是输出文件名
-//lineNo    是输出文件行号
+//size     	输入写内容尺寸
+//fileName  输出文件名
+//lineNo    输出文件行号
 func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 	w.mu.Lock()
 	now := time.Now()
@@ -296,10 +306,10 @@ func (w *FileWrite) rotateInit() error {
 }
 
 //写入数据
-//in    		是输入保存数据
-//fileName  	是输出文件名
-//lineNo    	是输出文件行号
-//err   	   	是输出错误信息
+//in    		输入保存数据
+//fileName  	输出文件名
+//lineNo    	输出文件行号
+//err   	   	输出错误信息
 func (w *FileWrite) Write(in []byte) (fileName string, lineNo int64, err error) {
 	fileName, lineNo = w.rotateCheck(len(in))
 	_, err = w.muwt.Write(in)
@@ -307,10 +317,10 @@ func (w *FileWrite) Write(in []byte) (fileName string, lineNo int64, err error) 
 }
 
 //写入字符串
-//s    		是输入保存数据
-//fileName  是输出文件名
-//lineNo    是输出文件行号
-//err   	是输出错误信息
+//s    		输入保存数据
+//fileName  输出文件名
+//lineNo    输出文件行号
+//err   	输出错误信息
 func (w *FileWrite) WriteString(s string) (fileName string, lineNo int64, err error) {
 	fileName, lineNo = w.rotateCheck(len(s))
 	_, err = w.muwt.WriteString(s)
@@ -373,6 +383,11 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	yesterday := truncToDay(now)   //计算今天凌晨0点时间
 	files := make([]*file, 0, 256) //初始化文件数组
 
+	curCleanSuffix := w.cfg.CleanSuffix
+	if w.cfger.IsFileZip() {
+		curCleanSuffix = curCleanSuffix + zipFileSuffix
+	}
+
 	//遍历目录函数函数
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
@@ -399,7 +414,7 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 				strings.HasPrefix(basePath, basePrefix) &&
 				!strings.HasSuffix(basePath, fileName+LockSuffix) &&
 				strings.HasSuffix(basePath, w.cfg.WriteSuffix+LockSuffix) {
-				os.Remove(basePath)
+				os.Remove(basePath) //删除过去无效的锁文件
 				return
 			}
 
@@ -448,7 +463,7 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	for _, file := range files {
 		//删除过期的数据，至少保持最近3天的数据文件，增加结对时间判断防止误删除
 		if file.Modfy.Unix() < abcTime && file.Modfy.Unix() < keepTime &&
-			strings.HasSuffix(file.Path, w.cfg.CleanSuffix) &&
+			strings.HasSuffix(file.Path, curCleanSuffix) &&
 			!FileLocked(file.Path) {
 			err := os.Remove(file.Path)
 			if err != nil {
@@ -467,10 +482,11 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			!FileLocked(file.Base) {
 			newName, err := w.cfger.GetFileRename(file.Base)
 			if err == nil {
-				err = os.Rename(file.Base, newName)
-				if err != nil {
+				if err = os.Rename(file.Base, newName); err != nil {
 					printf(" <ERROR>[%s] %s os.rename %v -> %v , err : %v \n\n",
 						logTime(), w._Name_, file.Base, newName, err)
+				} else if w.cfger.IsFileZip() {
+					go zipLogFile(newName)
 				}
 			} else {
 				printf(" <ERROR>[%s] %s get rename %v -> %v , err : %v \n\n",
@@ -528,7 +544,7 @@ func (w *FileWrite) lockClean(fileName string) error {
 				strings.HasPrefix(basePath, basePrefix) &&
 				!strings.HasSuffix(basePath, fileName+LockSuffix) &&
 				strings.HasSuffix(basePath, w.cfg.WriteSuffix+LockSuffix) {
-				os.Remove(basePath)
+				os.Remove(basePath) //删除过去无效的锁文件
 			}
 		}
 		return

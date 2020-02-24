@@ -455,9 +455,10 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			strings.HasSuffix(file.Path, w.cfg.WriteSuffix) {
 			newName, err := w.cfger.GetFileRename(file.Base)
 			if err == nil {
-				err = os.Rename(file.Path, newName)
-				if err != nil {
+				if err = os.Rename(file.Path, newName); err != nil {
 					fmt.Printf("\t%s %v\n", w.Name, file.Path)
+				} else if mw.zipFile {
+					go zipFile(fileRename)
 				}
 			} else {
 				fmt.Printf("\t%s %v\n", w.Name, err)

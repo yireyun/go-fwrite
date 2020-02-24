@@ -178,6 +178,8 @@ func (c *FileConfig) GetFileName() (fileName string, err error) {
 					if e = os.Rename(fileName, newName); e != nil {
 						print(fmt.Sprintf("\t[%s] rename [%s] error:%v\n",
 							fileName, newName, e))
+					} else if mw.zipFile {
+						go zipFile(fileRename)
 					}
 				} else {
 					print(fmt.Sprintf("\t[%s] get rename [%s] error:%v\n",

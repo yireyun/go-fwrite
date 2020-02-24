@@ -22,6 +22,9 @@ type MutexConfiger interface {
 	//是否启用重命名
 	IsRename() bool
 
+	//是否压缩文件
+	IsFileZip() bool
+
 	//获取文件名
 	//fileName	是出文件名
 	//err   	是输出错误信息
@@ -225,6 +228,8 @@ func (mw *MutexWrite) Close() (err error) {
 				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error: %v\n\n",
 					logTime(), mw._Name_, curName, fileRename, e)
 				return e
+			} else if mw.cfger.IsFileZip() {
+				go zipLogFile(fileRename)
 			}
 		}
 	}
