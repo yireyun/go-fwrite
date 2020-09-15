@@ -64,6 +64,7 @@ func (f *fileLock) Exists(name string) bool {
 	f.mu.Lock()
 	_, ok := f.files[name]
 	f.mu.Unlock()
+
 	if ok {
 		if traceLock {
 			printf("<TRACE>[%s] fileLock.Exists \"%s\" Is Locked.\n\n",

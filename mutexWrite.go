@@ -90,12 +90,12 @@ func (mw *MutexWrite) FileStat() (os.FileInfo, error) {
 	}
 
 	mw.mutex.Lock()
+	defer mw.mutex.Unlock()
+
 	if mw.closed || mw.file == os.Stdout {
-		mw.mutex.Unlock()
 		return nil, ErrFileClosed
 	}
 	stat, err := mw.file.Stat()
-	mw.mutex.Unlock()
 
 	return stat, err
 }
@@ -190,7 +190,7 @@ func (mw *MutexWrite) Close() (err error) {
 
 		//解除锁定
 		if mw.flock != nil {
-			err = mw.flock.Unlock()
+			err = mw.flock.Unlock() // 解锁当前文件锁
 			mw.flock = nil
 			if err != nil {
 				printf(" <ERROR>[%s] %s unlock \"%s\" error:%v\n\n",
