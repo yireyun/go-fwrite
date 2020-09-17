@@ -61,9 +61,13 @@ func (f *fileLock) Exists(name string) bool {
 
 	name = strings.Replace(name, `\`, `/`, -1)
 
-	f.mu.Lock()
-	_, ok := f.files[name]
-	f.mu.Unlock()
+	ok := func() bool {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+
+		_, ok := f.files[name]
+		return ok
+	}()
 
 	if ok {
 		if traceLock {

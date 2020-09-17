@@ -78,7 +78,7 @@ func (mw *MutexWrite) SetFd(fileSync, fileLock, rename bool,
 
 		//解除锁定
 		if mw.flock != nil {
-			err = mw.flock.Unlock()
+			err = mw.flock.Unlock() // ▲ 解锁当前文件锁
 			if err != nil {
 				fmt.Printf("\t%s unlock '%s' error:%v\n", mw.out.Name(), err)
 			}
