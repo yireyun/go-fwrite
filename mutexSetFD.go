@@ -110,7 +110,7 @@ NEWFILE:
 		//锁定文件
 		if fileLock {
 			mw.flock = flock.NewFlock(fileName + LockSuffix)
-			err = mw.flock.NBLock()
+			err = mw.flock.NBLock() // ▲ 解锁当前文件锁
 			if err != nil {
 				printf(" <ERROR>[%s] %s lock \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, fileName, err)
