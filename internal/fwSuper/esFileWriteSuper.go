@@ -244,12 +244,13 @@ func (w *FileWrite) fileRotate() (err error) {
 //lineNo    是输出文件行号
 func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	now := time.Now()
 	if w.cfg.Rotate && w.mw.out != os.Stdout && //未执行初始化,不切文件
 		((w.cfg.MaxLines > 0 && w.cfg.CurLines >= w.cfg.MaxLines) || //最大行数触发切文件
 			(w.cfg.MaxSize > 0 && w.cfg.CurSize >= w.cfg.MaxSize) || //最大尺寸触发切文件
 			(w.cfg.Dayend && now.Day() != w.cfg.CurDay)) { //日期变化触发切文件
-		defer w.mu.Unlock()
 		if err := w.Rotate(); err != nil {
 			fmt.Printf("\t%s file rotate error：%v\n", w.Name, err)
 			return
@@ -261,7 +262,6 @@ func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 		w.cfg.CurLines++
 		w.cfg.CurSize += int64(size)
 		fileName, lineNo = w.cfg.FileName, w.cfg.CurLines
-		w.mu.Unlock()
 		return
 	}
 }
