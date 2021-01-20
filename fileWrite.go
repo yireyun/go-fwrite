@@ -105,7 +105,7 @@ func (w *FileWrite) InitFileWriter(name string, cfger Configer) {
 	w.cfger = cfger
 	w.cfg = cfger.Config() //设置配置信息
 	w.muwt = &MutexWrite{
-		_Name_: name + ".mw",
+		_Name_: name + ".MWrite",
 		stdout: true,      //输出到Stdout
 		file:   os.Stdout, //输出到Stdout
 		cfger:  cfger,     //输入配置
@@ -216,7 +216,7 @@ func (w *FileWrite) Init(fileSync bool, filePrefix string,
 	if w.cfg.RotateRenameSuffix {
 		w.cfg.RotateRename = writeSuffix != renameSuffix
 	} else {
-		w.cfg.RotateRename = true
+		w.cfg.RotateRename = true //设置为 true 表示需要重名名
 	}
 	w.cfg.MaxLines = maxLines
 	w.cfg.MaxSize = maxSize
@@ -262,6 +262,7 @@ func (w *FileWrite) fileRotate(fileEof []byte) (err error) {
 //lineNo    输出文件行号
 func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 	w.mu.Lock()
+
 	now := time.Now()
 	if w.cfg.Rotate && !w.muwt.IsStdout() && //未执行初始化,不切文件
 		((w.cfg.MaxLines > 0 && w.cfg.CurLines >= w.cfg.MaxLines) || //最大行数触发切文件
@@ -269,7 +270,7 @@ func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 			(w.cfg.Dayend && now.Day() != w.cfg.CurDay)) { //日期变化触发切文件
 		defer w.mu.Unlock()
 		if err := w.Rotate(); err != nil {
-			printf(" <ERROR>[%s] %s rotate error：%v\n\n",
+			printf("<ERROR>[%s] %s rotate error：%v\n\n",
 				logTime(), w._Name_, err)
 			return
 		}
@@ -392,13 +393,13 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				printf(" <ERROR>[%s] %s clean \"%s\" panic:%v\n\n",
+				printf("<ERROR>[%s] %s clean \"%s\" panic:%v\n\n",
 					logTime(), w._Name_, path, r)
 			}
 		}()
 
 		if err != nil {
-			//fmt.Printf(" <ERROR>[%s] %s walk \"%s\" error:%v\n\n",
+			//fmt.Printf("<ERROR>[%s] %s walk \"%s\" error:%v\n\n",
 			//logTime(), w.name, path, err)
 			return nil
 		}
@@ -441,7 +442,7 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 	//遍类目录线的所有文件
 	err = filepath.Walk(dir, cleanFunc)
 	if err != nil {
-		printf(" <ERROR>[%v] %s over walk error: %v\n\n",
+		printf("<ERROR>[%v] %s over walk error: %v\n\n",
 			logTime(), w._Name_, err)
 	}
 
@@ -467,7 +468,7 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			!FileLocked(file.Path) {
 			err := os.Remove(file.Path)
 			if err != nil {
-				printf(" <ERROR>[%s] %s os.remove %v, err : %v\n\n",
+				printf("<ERROR>[%s] %s os.Remove %v, err : %v\n\n",
 					logTime(), w._Name_, file.Path, err)
 			} else {
 				cleanFile = append(cleanFile, file.Path)
@@ -483,13 +484,13 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			newName, err := w.cfger.GetFileRename(file.Base)
 			if err == nil {
 				if err = os.Rename(file.Base, newName); err != nil {
-					printf(" <ERROR>[%s] %s os.rename %v -> %v , err : %v \n\n",
+					printf("<ERROR>[%s] %s os.rename %v -> %v , err : %v \n\n",
 						logTime(), w._Name_, file.Base, newName, err)
 				} else if w.cfger.IsFileZip() {
 					go zipLogFile(newName)
 				}
 			} else {
-				printf(" <ERROR>[%s] %s get rename %v -> %v , err : %v \n\n",
+				printf("<ERROR>[%s] %s get rename %v -> %v , err : %v \n\n",
 					logTime(), w._Name_, file.Base, newName, err)
 			}
 		}
@@ -523,13 +524,13 @@ func (w *FileWrite) lockClean(fileName string) error {
 	cleanFunc := func(path string, info os.FileInfo, err error) (retErr error) {
 		defer func() {
 			if x := recover(); x != nil {
-				printf(" <ERROR>[%s] %s clean \"%s\" panic :%v\n\n",
+				printf("<ERROR>[%s] %s clean \"%s\" panic :%v\n\n",
 					logTime(), w._Name_, path, x)
 			}
 		}()
 
 		if err != nil {
-			//printf(" <ERROR>[%s] %s walk \"%s\" error:%v\n\n",
+			//printf("<ERROR>[%s] %s walk \"%s\" error:%v\n\n",
 			//logTime(), w.Name, path, err)
 			return nil
 		}
@@ -553,7 +554,7 @@ func (w *FileWrite) lockClean(fileName string) error {
 	//遍类目录线的所有文件
 	err = filepath.Walk(dir, cleanFunc)
 	if err != nil {
-		printf(" <ERROR>[%s] %s over walk error:%v\n\n",
+		printf("<ERROR>[%s] %s over walk error:%v\n\n",
 			logTime(), w._Name_, err)
 	}
 	return nil

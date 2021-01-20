@@ -14,6 +14,7 @@ var (
 	ErrFileOpened = fmt.Errorf("file is opened")
 	ErrNameSame   = fmt.Errorf("file name is same or nil")
 	ErrNameEmpty  = fmt.Errorf("file name is empty or nil")
+	ErrFileSwitch = fmt.Errorf("file name switch fail")
 )
 
 const (
@@ -88,7 +89,7 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		if stat != nil {
 			return stat, true, fLocks.Exists(fileName), err
 		} else {
-			printf(" <ERROR>[%s] FileInfo \"%v\" By os.OpenFile() Error: %v\n\n",
+			printf("<ERROR>[%s] FileInfo \"%v\" By os.OpenFile() Error: %v\n\n",
 				logTime(), fileName, err)
 		}
 	}
@@ -103,7 +104,7 @@ func FileInfo(fileName string) (stat os.FileInfo, exist, locked bool, err error)
 		if stat != nil {
 			return stat, true, fLocks.Exists(fileName), err
 		} else {
-			printf(" <ERROR>[%s] FileInfo \"%v\" By os.IsExist() Error: %v\n\n",
+			printf("<ERROR>[%s] FileInfo \"%v\" By os.IsExist() Error: %v\n\n",
 				logTime(), fileName, err)
 		}
 	}

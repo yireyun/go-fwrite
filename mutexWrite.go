@@ -183,17 +183,17 @@ func (mw *MutexWrite) Close() (err error) {
 			fLocks.Unlock(mw.file)
 			mw.closed = true
 			if err != nil {
-				printf(" <ERROR>[%s] %s close \"%s\" error:%v\n\n",
+				printf("<ERROR>[%s] %s close \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, err)
 			}
 		}
 
 		//解除锁定
 		if mw.flock != nil {
-			err = mw.flock.Unlock()
+			err = mw.flock.Unlock() // ▲ 解锁当前文件锁
 			mw.flock = nil
 			if err != nil {
-				printf(" <ERROR>[%s] %s unlock \"%s\" error:%v\n\n",
+				printf("<ERROR>[%s] %s unlock \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, err)
 			}
 		}
@@ -206,26 +206,26 @@ func (mw *MutexWrite) Close() (err error) {
 		if rename && exist && !locked && stat.Size() > 0 {
 
 			if curName == "" {
-				printf(" <ERROR>[%s] %s rename old file error:%v\n\n",
+				printf("<ERROR>[%s] %s rename old file error:%v\n\n",
 					logTime(), mw._Name_, ErrNameEmpty)
 				return ErrNameEmpty
 			}
 
 			fileRename, renameErr := mw.cfger.GetFileRename(curName)
 			if renameErr != nil {
-				printf(" <ERROR>[%s] %s rename \"%s\" error:%v\n\n",
+				printf("<ERROR>[%s] %s get \"%s\" rename error:%v\n\n",
 					logTime(), mw._Name_, curName, renameErr)
 				return renameErr
 			}
 
 			if fileRename == "" || fileRename == curName {
-				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error: %v\n\n",
+				printf("<ERROR>[%s] %s rename \"%s\" -> \"%s\" error: %v\n\n",
 					logTime(), mw._Name_, curName, fileRename, ErrNameSame)
 				return ErrNameSame
 			}
 
 			if e := os.Rename(curName, fileRename); e != nil {
-				printf(" <ERROR>[%s] %s rename \"%s\" -> \"%s\" error: %v\n\n",
+				printf("<ERROR>[%s] %s os.Rename \"%s\" -> \"%s\" error: %v\n\n",
 					logTime(), mw._Name_, curName, fileRename, e)
 				return e
 			} else if mw.cfger.IsFileZip() {

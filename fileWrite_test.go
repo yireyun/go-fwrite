@@ -11,13 +11,13 @@ import (
 
 func TestWriteFile(t *testing.T) {
 	//t.SkipNow()
-	w := NewFileWrite("Journal")
+	w := NewFileWrite("TestWrite")
 	var err error
 	//fileSync, filePrefix, writeSuffix, renameSuffix string,
 	//rotate, dayend, zeroSize bool, maxLines, maxSize int,
 	//cleaning bool, maxDays int
-	_, err = w.Init(true, "test", "log", "log", "log",
-		true, true, true, false, 10, 1<<20, true, 3)
+	_, err = w.Init(true, "TestWrite", "log", "log", "log",
+		true, true, false, true, 10, 1<<20, true, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,8 +68,8 @@ func TestBenchmarkWrite(t *testing.T) {
 	//fileSync, filePrefix, writeSuffix, renameSuffix string,
 	//rotate, dayend,zeroSize bool, maxLines, maxSize int,
 	//cleaning bool, maxDays int
-	write.Init(true, "testWrite", "log", "log", "log", true, true, true, true,
-		10000*100, 0, true, 3)
+	write.Init(true, "testWrite", "log", "log", "log",
+		true, true, true, true, 10000*100, 0, true, 3)
 
 	//	t.SkipNow()
 

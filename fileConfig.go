@@ -160,6 +160,7 @@ func (c *FileConfig) getFileRename(fileName string, modifyTime time.Time) (
 	for num := 1; num <= math.MaxInt16; num++ {
 		fileRename = sprintf("%s.%s.%03d%s", fileName,
 			modifyTime.Format("2006-01-02"), num, c.RenameSuffix)
+
 		if !FileExist(fileRename) && !FileExist(fileRename+zipFileSuffix) {
 			//文件不存在则返回
 			return fileRename, nil
@@ -202,13 +203,13 @@ func (c *FileConfig) GetNewFileName() (fileName string, err error) {
 				newName, e := c.getFileRename(fileName, info.ModTime())
 				if e == nil {
 					if e = os.Rename(fileName, newName); e != nil {
-						printf(" <ERROR>[%s] %s rename [%s] error: %v\n\n",
+						printf("<ERROR>[%s] %s os.Rename [%s] error: %v\n\n",
 							logTime(), c.Name, fileName, e)
 					} else if c.IsFileZip() {
 						go zipLogFile(newName)
 					}
 				} else {
-					printf(" <ERROR>[%s] %s get rename [%s] error: %v\n\n",
+					printf("<ERROR>[%s] %s get \"%s\" rename error: %v\n\n",
 						logTime(), c.Name, fileName, e)
 				}
 			}
