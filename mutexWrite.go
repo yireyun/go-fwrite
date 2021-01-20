@@ -90,12 +90,12 @@ func (mw *MutexWrite) FileStat() (os.FileInfo, error) {
 	}
 
 	mw.mutex.Lock()
+	defer mw.mutex.Unlock()
+
 	if mw.closed || mw.file == os.Stdout {
-		mw.mutex.Unlock()
 		return nil, ErrFileClosed
 	}
 	stat, err := mw.file.Stat()
-	mw.mutex.Unlock()
 
 	return stat, err
 }

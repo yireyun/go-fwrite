@@ -262,13 +262,13 @@ func (w *FileWrite) fileRotate(fileEof []byte) (err error) {
 //lineNo    输出文件行号
 func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 	w.mu.Lock()
+	defer w.mu.Unlock()
 
 	now := time.Now()
 	if w.cfg.Rotate && !w.muwt.IsStdout() && //未执行初始化,不切文件
 		((w.cfg.MaxLines > 0 && w.cfg.CurLines >= w.cfg.MaxLines) || //最大行数触发切文件
 			(w.cfg.MaxSize > 0 && w.cfg.CurSize >= w.cfg.MaxSize) || //最大尺寸触发切文件
 			(w.cfg.Dayend && now.Day() != w.cfg.CurDay)) { //日期变化触发切文件
-		defer w.mu.Unlock()
 		if err := w.Rotate(); err != nil {
 			printf("<ERROR>[%s] %s rotate error：%v\n\n",
 				logTime(), w._Name_, err)
@@ -281,7 +281,6 @@ func (w *FileWrite) rotateCheck(size int) (fileName string, lineNo int64) {
 		w.cfg.CurLines++
 		w.cfg.CurSize += int64(size)
 		fileName, lineNo = w.cfg.FileName, w.cfg.CurLines
-		w.mu.Unlock()
 		return
 	}
 }
@@ -483,8 +482,9 @@ func (w *FileWrite) fileClean(fileName string) (error, []string) {
 			!FileLocked(file.Base) {
 			newName, err := w.cfger.GetFileRename(file.Base)
 			if err == nil {
-				if err = os.Rename(file.Base, newName); err != nil {
-					printf("<ERROR>[%s] %s os.rename %v -> %v , err : %v \n\n",
+				err = os.Rename(file.Base, newName)
+				if err != nil {
+					printf("<ERROR>[%s] %s os.Rename %v -> %v , err : %v \n\n",
 						logTime(), w._Name_, file.Base, newName, err)
 				} else if w.cfger.IsFileZip() {
 					go zipLogFile(newName)
