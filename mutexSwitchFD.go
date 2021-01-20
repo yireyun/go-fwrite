@@ -13,9 +13,9 @@ func (mw *MutexWrite) SwitchFD() (err error) {
 		return ErrFileNil
 	}
 
-	fileSync := mw.cfger.IsFileSync()
-	fileLock := mw.cfger.IsFileLock()
-	rename := mw.cfger.IsRename()
+	isFileSync := mw.cfger.IsFileSync()
+	isFileLock := mw.cfger.IsFileLock()
+	isRename := mw.cfger.IsRename()
 	fileEof := mw.cfger.GetFileEof()
 
 	mw.mutex.Lock()
@@ -33,7 +33,7 @@ func (mw *MutexWrite) SwitchFD() (err error) {
 		//关闭文件
 		if !mw.closed {
 			err = mw.file.Close()
-			if !rename {
+			if !isRename {
 				//如果不修改名文件名, 则不解出锁定
 				fLocks.Unlock(mw.file)
 				isLocked = false
@@ -46,6 +46,9 @@ func (mw *MutexWrite) SwitchFD() (err error) {
 			if err != nil {
 				printf("<ERROR>[%s] %s close \"%s\" error:%v\n\n",
 					logTime(), mw._Name_, curName, err)
+			} else {
+				printf("<TRACE>[%s] %s close \"%s\" success\n\n",
+					logTime(), mw._Name_, curName)
 			}
 		}
 
@@ -60,7 +63,7 @@ func (mw *MutexWrite) SwitchFD() (err error) {
 		}
 
 		//重命名文件
-		if rename {
+		if isRename {
 
 			if curName == "" {
 				printf("<ERROR>[%s] %s rename old file error:%v\n\n",
@@ -100,7 +103,7 @@ NEWFILE:
 
 		//以append方式打开文件，不存在则创建
 		var fd *os.File
-		fd, err = openFileWithCreateAppend(fileName, fileSync)
+		fd, err = openFileWithCreateAppend(fileName, isFileSync)
 		if err != nil {
 			return err
 		}
@@ -111,25 +114,35 @@ NEWFILE:
 		}
 		if mw.cfger.IsZeroSize() && fs.Size() > 0 {
 			fd.Close()
-			fileRename, renameErr := mw.cfger.GetFileRename(fileName)
-			if renameErr != nil {
-				printf("<ERROR>[%s] %s get \"%s\" rename error:%v\n\n",
-					logTime(), mw._Name_, fileName, renameErr)
-				continue
-			}
+			if isRename {
+				fileRename, renameErr := mw.cfger.GetFileRename(fileName)
+				if renameErr != nil {
+					printf("<ERROR>[%s] %s get \"%s\" rename error:%v\n\n",
+						logTime(), mw._Name_, fileName, renameErr)
+					continue
+				}
 
-			if fileRename == "" || fileRename == fileName {
-				printf("<ERROR>[%s] %s rename \"%s\" -> \"%s\"  error:%v\n\n",
-					logTime(), mw._Name_, fileName, fileRename, ErrNameSame)
-				continue
-			}
+				if fileRename == "" || fileRename == fileName {
+					printf("<ERROR>[%s] %s rename \"%s\" -> \"%s\" error:%v\n\n",
+						logTime(), mw._Name_, fileName, fileRename, ErrNameSame)
+					continue
+				}
 
-			if e := os.Rename(fileName, fileRename); e != nil {
-				printf("<ERROR>[%s] %s os.Rename \"%s\" -> \"%s\" error:%v\n\n",
-					logTime(), mw._Name_, fileName, fileRename, e)
-				continue
-			} else if mw.cfger.IsFileZip() {
-				go zipLogFile(fileRename)
+				if e := os.Rename(fileName, fileRename); e != nil {
+					printf("<ERROR>[%s] %s os.Rename \"%s\" -> \"%s\" error:%v\n\n",
+						logTime(), mw._Name_, fileName, fileRename, e)
+					continue
+				} else if mw.cfger.IsFileZip() {
+					go zipLogFile(fileRename)
+				}
+			} else {
+				var newNameErr error
+				fileName, newNameErr = mw.cfger.GetNewFileName()
+				if newNameErr != nil {
+					printf("<ERROR>[%s] %s get \"%s\" rename error:%v\n\n",
+						logTime(), mw._Name_, fileName, newNameErr)
+					continue
+				}
 			}
 			continue
 		}
@@ -140,7 +153,7 @@ NEWFILE:
 		}
 
 		//锁定文件
-		if fileLock {
+		if isFileLock {
 			mw.flock = flock.NewFlock(fileName + LockSuffix)
 			err = mw.flock.NBLock()
 			if err != nil {
@@ -150,4 +163,5 @@ NEWFILE:
 		}
 		return nil
 	}
+	return ErrFileSwitch
 }
