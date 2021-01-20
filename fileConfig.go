@@ -158,10 +158,14 @@ func (c *FileConfig) getFileRename(fileName string, modifyTime time.Time) (
 	}
 	//获取新文件名，如：test.log.2015-09-06.006.log，序号最大MaxInt16
 	for num := 1; num <= math.MaxInt16; num++ {
-		fileRename = sprintf("%s.%s.%03d%s", fileName,
-			modifyTime.Format("2006-01-02"), num, c.RenameSuffix)
+		curDate := modifyTime.Format("2006-01-02")
+		fileRename = sprintf("%s.%s.%03d%s", fileName, curDate, num, c.RenameSuffix)
+		fileWrite := sprintf("%s.%s.%03d%s", fileName, curDate, num, c.WriteSuffix)
+		fileClean := sprintf("%s.%s.%03d%s", fileName, curDate, num, c.CleanSuffix)
 
-		if !FileExist(fileRename) && !FileExist(fileRename+zipFileSuffix) {
+		if !FileExist(fileRename) && !FileExist(fileRename+zipFileSuffix) &&
+			!FileExist(fileWrite) && !FileExist(fileWrite+zipFileSuffix) &&
+			!FileExist(fileClean) && !FileExist(fileClean+zipFileSuffix) {
 			//文件不存在则返回
 			return fileRename, nil
 		}
